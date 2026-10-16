@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Soirée chez moi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"></script>
+<style>
+/* Layout : un « billet d'entrée » central sur fond de nuit, le formulaire est le billet. */
+:root {
+  --night: #22133a;
+  --night-2: #2f1c4f;
+  --ticket: #fff8ec;
+  --ink: #2a1a3f;
+  --ink-soft: #6b5a80;
+  --sun: #ffc23d;
+  --pink: #ff5d8f;
+  --line: #e7dccb;
+  --ok: #1f9d6b;
+  --err: #c8324f;
+  --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(255,93,143,.25), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(255,194,61,.18), transparent 45%),
+    var(--night);
+  color: var(--ticket);
+  font: 16px/1.55 var(--body);
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 28px; }
+
+header { display: grid; gap: 10px; }
+.eyebrow { font: 700 12px/1 var(--body); letter-spacing: .18em; text-transform: uppercase; color: var(--sun); }
+h1 { font: 800 clamp(40px, 9vw, 72px)/0.95 var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.02em; }
+h1 em { font-style: normal; color: var(--pink); }
+.details { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.chip { border: 1px solid rgba(255,248,236,.25); border-radius: 999px; padding: 6px 12px; font-size: 14px; }
+
+.ticket {
+  background: var(--ticket);
+  color: var(--ink);
+  border-radius: 18px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+/* encoches du billet */
+.stub::before, .stub::after {
+  content: ""; position: absolute; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--night); bottom: -15px;
+}
+.stub::before { left: -14px; } .stub::after { right: -14px; }
+.stub { position: relative; padding: 26px 26px 22px; border-bottom: 2px dashed var(--line); display: grid; gap: 6px; align-content: center; }
+.stub h2 { font: 800 26px/1.1 var(--display); margin: 0; }
+.stub p { margin: 0; color: var(--ink-soft); }
+
+form { padding: 22px 26px 28px; display: grid; gap: 30px; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 16px; min-width: 0; }
+legend { font: 800 19px/1.2 var(--display); padding: 0; margin-bottom: 14px; display: flex; gap: 10px; align-items: baseline; }
+legend small { font: 500 13px var(--body); color: var(--ink-soft); }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 520px) { .row { grid-template-columns: 1fr; } form, .stub { padding-left: 18px; padding-right: 18px; } }
+
+.field { display: grid; gap: 6px; min-width: 0; }
+label, .q { font-weight: 700; font-size: 14px; }
+.hint { font-size: 13px; color: var(--ink-soft); font-weight: 400; }
+input[type=text], input[type=email], input[type=tel], input[type=date], textarea, select {
+  width: 100%; font: inherit; color: var(--ink); background: #fff;
+  border: 1.5px solid var(--line); border-radius: 10px; padding: 11px 12px;
+  color-scheme: light;
+}
+textarea { min-height: 70px; resize: vertical; }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--sun); outline-offset: 1px; border-color: var(--ink); }
+.field.invalid input { border-color: var(--err); }
+.err { color: var(--err); font-size: 13px; min-height: 0; }
+
+/* tuiles de choix */
+.choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.choice { position: relative; }
+.choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.choice span {
+  display: grid; gap: 2px; height: 100%; padding: 12px; border: 1.5px solid var(--line); border-radius: 12px;
+  background: #fff; font-weight: 700; font-size: 15px; cursor: pointer; transition: transform .12s, border-color .12s, background .12s;
+}
+.choice span small { font-weight: 400; color: var(--ink-soft); font-size: 12.5px; }
+.choice input:checked + span { border-color: var(--ink); background: #fff1c9; transform: translateY(-2px); box-shadow: 0 3px 0 var(--ink); }
+.choice input:focus-visible + span { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+/* jauge de danse */
+.dance { display: grid; gap: 8px; }
+input[type=range] { width: 100%; accent-color: var(--pink); }
+.dance-out { font: 800 18px var(--display); color: var(--pink); }
+
+.consent { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--ink-soft); }
+.consent input { margin-top: 4px; accent-color: var(--ink); }
+
+button {
+  font: 800 18px var(--display); border: 0; border-radius: 12px; padding: 16px 20px;
+  background: var(--pink); color: #fff; cursor: pointer; box-shadow: 0 4px 0 var(--ink);
+  transition: transform .1s, box-shadow .1s;
+}
+button:hover { transform: translateY(-1px); }
+button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+button:focus-visible { outline: 3px solid var(--sun); outline-offset: 3px; }
+button[disabled] { opacity: .6; cursor: wait; }
+.form-msg { font-size: 14px; color: var(--err); }
+
+.done { padding: 32px 26px 36px; display: grid; gap: 14px; text-align: left; }
+.done h2 { font: 800 30px/1.1 var(--display); margin: 0; }
+.done p { margin: 0; }
+.recap { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 14px; background: #fff; border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.recap dt { color: var(--ink-soft); }
+.recap dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+
+footer { font-size: 13px; color: rgba(255,248,236,.6); text-align: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Tu es invité·e</div>
+    <h1>Soirée <em>chez moi</em></h1>
+    <div class="details">
+      <span class="chip" id="chip-date"></span>
+      <span class="chip" id="chip-heure"></span>
+      <span class="chip" id="chip-lieu"></span>
+    </div>
+  </header>
+
+  <main class="ticket">
+    <div class="stub">
+      <h2>Réserve ta place</h2>
+      <p>Remplis le billet ci-dessous. Tu recevras un e-mail de confirmation juste après.</p>
+    </div>
+
+    <form id="rsvp" novalidate>
+      <fieldset>
+        <legend>Toi <small>pour savoir qui sonne à la porte</small></legend>
+        <div class="row">
+          <div class="field">
+            <label for="prenom">Prénom</label>
+            <input type="text" id="prenom" name="prenom" autocomplete="given-name" required>
+            <div class="err" aria-live="polite"></div>
+          </div>
+          <div class="field">
+            <label for="nom">Nom</label>
+            <input type="text" id="nom" name="nom" autocomplete="family-name" required>
+            <div class="err" aria-live="polite"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="naissance">Date de naissance</label>
+          <input type="date" id="naissance" name="naissance" autocomplete="bday" required>
+          <div class="err" aria-live="polite"></div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="tel">Numéro de téléphone</label>
+            <input type="tel" id="tel" name="tel" autocomplete="tel" placeholder="06 12 34 56 78" required>
+            <div class="err" aria-live="polite"></div>
+          </div>
+          <div class="field">
+            <label for="email">E-mail <span class="hint">(pour la confirmation)</span></label>
+            <input type="email" id="email" name="email" autocomplete="email" placeholder="prenom@exemple.fr" required>
+            <div class="err" aria-live="polite"></div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset id="fs-boisson">
+        <legend>Ta boisson préférée</legend>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="boisson" id="b-biere" value="Bière"><span>Bière<small>blonde bien fraîche</small></span></label>
+          <label class="choice"><input type="radio" name="boisson" id="b-vin-rouge" value="Vin rouge"><span>Vin rouge<small>pour les connaisseurs</small></span></label>
+          <label class="choice"><input type="radio" name="boisson" id="b-vin-blanc" value="Vin blanc / rosé"><span>Vin blanc / rosé<small>l'apéro classique</small></span></label>
+          <label class="choice"><input type="radio" name="boisson" id="b-cocktail" value="Cocktail"><span>Cocktail<small>mojito, spritz…</small></span></label>
+          <label class="choice"><input type="radio" name="boisson" id="b-soft" value="Soft"><span>Soft<small>coca, jus, limonade</small></span></label>
+          <label class="choice"><input type="radio" name="boisson" id="b-mocktail" value="Mocktail sans alcool"><span>Mocktail<small>sans alcool, avec style</small></span></label>
+        </div>
+        <div class="err" aria-live="polite"></div>
+      </fieldset>
+
+      <fieldset id="fs-regime">
+        <legend>Côté assiette</legend>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="regime" id="r-vegan" value="Vegan"><span>Vegan<small>zéro produit animal</small></span></label>
+          <label class="choice"><input type="radio" name="regime" id="r-vege" value="Végétarien"><span>Végétarien<small>pas de viande ni poisson</small></span></label>
+          <label class="choice"><input type="radio" name="regime" id="r-tout" value="Je mange de tout"><span>Je mange de tout<small>surprends-moi</small></span></label>
+        </div>
+        <div class="err" aria-live="polite"></div>
+        <div class="field">
+          <label for="allergies">Allergies <span class="hint">(facultatif)</span></label>
+          <input type="text" id="allergies" name="allergies" placeholder="Arachides, gluten…">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Les questions bonus <small>parce qu'on n'est pas là pour s'ennuyer</small></legend>
+
+        <div class="field">
+          <label for="chanson">La chanson qui te fait danser à coup sûr</label>
+          <input type="text" id="chanson" name="chanson" placeholder="Artiste – titre (elle ira dans la playlist)">
+        </div>
+
+        <div class="field dance">
+          <label for="danse">Ton niveau sur la piste de danse</label>
+          <input type="range" id="danse" name="danse" min="1" max="5" step="1" value="3">
+          <div class="dance-out" id="danse-out" aria-live="polite"></div>
+        </div>
+
+        <div class="field">
+          <span class="q" id="q-depart">Tu comptes partir à quelle heure ?</span>
+          <div class="choices" role="radiogroup" aria-labelledby="q-depart">
+            <label class="choice"><input type="radio" name="depart" id="d-minuit" value="Avant minuit"><span>Avant minuit<small>Cendrillon</small></span></label>
+            <label class="choice"><input type="radio" name="depart" id="d-3h" value="Vers 3 h"><span>Vers 3 h<small>le bon timing</small></span></label>
+            <label class="choice"><input type="radio" name="depart" id="d-soleil" value="Au lever du soleil"><span>Au lever du soleil<small>je reste pour le petit-déj</small></span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="q" id="q-ramene">Tu ramènes quoi ?</span>
+          <div class="choices" role="radiogroup" aria-labelledby="q-ramene">
+            <label class="choice"><input type="radio" name="ramene" id="a-plat" value="Un truc à grignoter"><span>À grignoter<small>chips, gâteau…</small></span></label>
+            <label class="choice"><input type="radio" name="ramene" id="a-jeu" value="Un jeu de société"><span>Un jeu<small>de société ou de cartes</small></span></label>
+            <label class="choice"><input type="radio" name="ramene" id="a-humeur" value="Ma bonne humeur"><span>Ma bonne humeur<small>c'est déjà beaucoup</small></span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="talent">Ton talent caché</label>
+          <input type="text" id="talent" name="talent" placeholder="Je jongle, je fais le moonwalk, je connais tout Disney par cœur…">
+        </div>
+
+        <div class="field">
+          <label for="mot">Un mot pour l'hôte <span class="hint">(facultatif)</span></label>
+          <textarea id="mot" name="mot" placeholder="Une question, une envie, une blague…"></textarea>
+        </div>
+      </fieldset>
+
+      <label class="consent" for="consent">
+        <input type="checkbox" id="consent" name="consent" required>
+        <span>J'accepte que mes réponses soient envoyées à l'hôte de la soirée, uniquement pour l'organisation.</span>
+      </label>
+
+      <div class="form-msg" id="form-msg" aria-live="polite"></div>
+      <button type="submit" id="submit">Je viens !</button>
+    </form>
+
+    <div class="done" id="done" hidden>
+      <div class="eyebrow" style="color:var(--pink)">C'est noté</div>
+      <h2 id="done-title"></h2>
+      <p id="done-text"></p>
+      <dl class="recap" id="recap"></dl>
+    </div>
+  </main>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+/* ================================================================
+   À PERSONNALISER : les infos de ta soirée
+   ================================================================ */
+const SOIREE = {
+  date: "Samedi 14 novembre",
+  heure: "À partir de 20 h",
+  lieu: "Chez moi (adresse envoyée par message)",
+  hote: "Henri",
+};
+
+/* ================================================================
+   E-MAIL DE CONFIRMATION (EmailJS, gratuit)
+   Remplis ces 3 valeurs après avoir créé ton compte sur emailjs.com.
+   Tant qu'elles sont vides, le site marche en mode démo (pas d'envoi).
+   ================================================================ */
+const EMAILJS = {
+  publicKey: "",   // Account → API keys → Public Key
+  serviceId: "",   // Email Services → ton service Gmail
+  templateId: "",  // Email Templates → ton modèle de confirmation
+};
+
+/* ---------------------------------------------------------------- */
+document.getElementById("chip-date").textContent = SOIREE.date;
+document.getElementById("chip-heure").textContent = SOIREE.heure;
+document.getElementById("chip-lieu").textContent = SOIREE.lieu;
+document.getElementById("footer").textContent = "Organisé par " + SOIREE.hote + " · tes infos ne servent qu'à cette soirée";
+
+const emailReady = EMAILJS.publicKey && EMAILJS.serviceId && EMAILJS.templateId && window.emailjs;
+if (emailReady) emailjs.init({ publicKey: EMAILJS.publicKey });
+
+const DANSE = {
+  1: "1 · Je garde le mur au chaud",
+  2: "2 · Je tape du pied, discrètement",
+  3: "3 · Je danse si on m'y pousse",
+  4: "4 · Je lance la chenille",
+  5: "5 · Je mets le feu à la piste",
+};
+const danse = document.getElementById("danse");
+const danseOut = document.getElementById("danse-out");
+const majDanse = () => (danseOut.textContent = DANSE[danse.value]);
+danse.addEventListener("input", majDanse);
+majDanse();
+
+const today = new Date().toISOString().slice(0, 10);
+document.getElementById("naissance").max = today;
+
+const form = document.getElementById("rsvp");
+const msg = document.getElementById("form-msg");
+
+function setErr(el, text) {
+  const box = el.closest(".field, fieldset");
+  box.classList.toggle("invalid", !!text);
+  const err = box.querySelector(".err");
+  if (err) err.textContent = text || "";
+}
+
+function valider() {
+  let ok = true;
+  const check = (id, test, text) => {
+    const el = document.getElementById(id);
+    const bad = !test(el.value.trim());
+    setErr(el, bad ? text : "");
+    if (bad) ok = false;
+  };
+  check("prenom", v => v.length > 0, "Indique ton prénom.");
+  check("nom", v => v.length > 0, "Indique ton nom.");
+  check("naissance", v => v && v <= today, "Indique ta date de naissance.");
+  check("tel", v => /^(\+?\d[\d .-]{7,17}\d)$/.test(v), "Numéro invalide. Exemple : 06 12 34 56 78");
+  check("email", v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v), "Adresse e-mail invalide. Exemple : prenom@exemple.fr");
+
+  for (const [name, fs, text] of [["boisson", "fs-boisson", "Choisis une boisson."], ["regime", "fs-regime", "Choisis une option."]]) {
+    const picked = form.querySelector(`input[name=${name}]:checked`);
+    const box = document.getElementById(fs);
+    box.querySelector(":scope > .err").textContent = picked ? "" : text;
+    if (!picked) ok = false;
+  }
+  if (!document.getElementById("consent").checked) {
+    msg.textContent = "Coche la case d'accord pour envoyer tes réponses.";
+    ok = false;
+  } else if (ok) msg.textContent = "";
+  if (!ok && !msg.textContent) msg.textContent = "Il manque quelques infos, regarde les champs en rouge.";
+  return ok;
+}
+
+const val = name => (form.querySelector(`input[name=${name}]:checked`) || {}).value || "—";
+const txt = id => document.getElementById(id).value.trim() || "—";
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!valider()) {
+    const first = form.querySelector(".invalid input, fieldset .err:not(:empty)");
+    if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  const naissance = document.getElementById("naissance").value;
+  const data = {
+    prenom: txt("prenom"),
+    nom: txt("nom"),
+    naissance: naissance.split("-").reverse().join("/"),
+    tel: txt("tel"),
+    email: txt("email"),
+    boisson: val("boisson"),
+    regime: val("regime"),
+    allergies: txt("allergies"),
+    chanson: txt("chanson"),
+    danse: DANSE[danse.value],
+    depart: val("depart"),
+    ramene: val("ramene"),
+    talent: txt("talent"),
+    mot: txt("mot"),
+    soiree_date: SOIREE.date,
+    soiree_heure: SOIREE.heure,
+    soiree_lieu: SOIREE.lieu,
+    hote: SOIREE.hote,
+  };
+
+  const btn = document.getElementById("submit");
+  btn.disabled = true;
+  btn.textContent = "Envoi…";
+
+  let envoye = false;
+  if (emailReady) {
+    try {
+      await emailjs.send(EMAILJS.serviceId, EMAILJS.templateId, data);
+      envoye = true;
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "Je viens !";
+      msg.textContent = "L'envoi a échoué. Vérifie ta connexion et réessaie.";
+      return;
+    }
+  }
+
+  document.getElementById("done-title").textContent = "À très vite, " + data.prenom + " !";
+  document.getElementById("done-text").textContent = envoye
+    ? "Ton inscription est enregistrée. Un e-mail de confirmation vient de partir à " + data.email + " (pense à regarder les spams)."
+    : "Mode démo : ton inscription s'affiche ici, mais aucun e-mail n'est envoyé tant que l'hôte n'a pas configuré l'envoi.";
+
+  const recap = document.getElementById("recap");
+  recap.textContent = "";
+  for (const [k, v] of [
+    ["Boisson", data.boisson], ["Assiette", data.regime], ["Allergies", data.allergies],
+    ["Chanson", data.chanson], ["Danse", data.danse], ["Départ", data.depart], ["Tu ramènes", data.ramene],
+  ]) {
+    const dt = document.createElement("dt"); dt.textContent = k;
+    const dd = document.createElement("dd"); dd.textContent = v;
+    recap.append(dt, dd);
+  }
+  form.hidden = true;
+  document.querySelector(".stub").hidden = true;
+  document.getElementById("done").hidden = false;
+  document.querySelector(".ticket").scrollIntoView({ behavior: "smooth" });
+});
+</script>
+</body>
+</html>
