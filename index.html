@@ -4,10 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Soirée chez moi</title>
+<meta name="description" content="Tu es invité·e ! Réserve ta place pour la soirée en 2 minutes.">
+<meta property="og:title" content="Soirée chez moi : tu viens ?">
+<meta property="og:description" content="Réserve ta place en 2 minutes : boisson, assiette et ta chanson pour la playlist.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://henridacquin06-png.github.io/soiree-chez-moi/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500;700&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"></script>
 <style>
 /* Layout : un « billet d'entrée » central sur fond de nuit, le formulaire est le billet. */
 :root {
@@ -282,15 +286,13 @@ const SOIREE = {
 };
 
 /* ================================================================
-   E-MAIL DE CONFIRMATION (EmailJS, gratuit)
-   Remplis ces 3 valeurs après avoir créé ton compte sur emailjs.com.
-   Tant qu'elles sont vides, le site marche en mode démo (pas d'envoi).
+   ENVOI DES RÉPONSES VERS ZAPIER
+   Colle ici l'adresse du webhook de ton Zap (étape « Catch Hook »).
+   Zapier range l'inscription dans la table « Invités soirée »,
+   t'envoie un WhatsApp et envoie l'e-mail de confirmation à l'invité.
+   Tant qu'elle est vide, le site marche en mode démo (rien n'est envoyé).
    ================================================================ */
-const EMAILJS = {
-  publicKey: "",   // Account → API keys → Public Key
-  serviceId: "",   // Email Services → ton service Gmail
-  templateId: "",  // Email Templates → ton modèle de confirmation
-};
+const ZAPIER_WEBHOOK = "https://hooks.zapier.com/hooks/catch/29093313/41z531f/";
 
 /* ---------------------------------------------------------------- */
 document.getElementById("chip-date").textContent = SOIREE.date;
@@ -298,8 +300,6 @@ document.getElementById("chip-heure").textContent = SOIREE.heure;
 document.getElementById("chip-lieu").textContent = SOIREE.lieu;
 document.getElementById("footer").textContent = "Organisé par " + SOIREE.hote + " · tes infos ne servent qu'à cette soirée";
 
-const emailReady = EMAILJS.publicKey && EMAILJS.serviceId && EMAILJS.templateId && window.emailjs;
-if (emailReady) emailjs.init({ publicKey: EMAILJS.publicKey });
 
 const DANSE = {
   1: "1 · Je garde le mur au chaud",
@@ -393,9 +393,10 @@ form.addEventListener("submit", async (e) => {
   btn.textContent = "Envoi…";
 
   let envoye = false;
-  if (emailReady) {
+  if (ZAPIER_WEBHOOK) {
     try {
-      await emailjs.send(EMAILJS.serviceId, EMAILJS.templateId, data);
+      // Envoi « simple » (formulaire encodé) : Zapier l'accepte sans blocage CORS.
+      await fetch(ZAPIER_WEBHOOK, { method: "POST", mode: "no-cors", body: new URLSearchParams(data) });
       envoye = true;
     } catch (err) {
       btn.disabled = false;
